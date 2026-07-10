@@ -102,7 +102,7 @@
     <main class="container">
       <h1>Helipad Clear-Angle Approach/Departure Visualizer</h1>
       <p class="note">
-        Simplified geometric planning aid only — not an operationally certified aviation planning tool.
+        Simplified geometric planning aid only -- not an operationally certified aviation planning tool.
       </p>
 
       <section class="layout">
@@ -155,7 +155,8 @@
       }
 
       function format(value) {
-        return Number(value).toFixed(2);
+        const numeric = Number(value);
+        return Number.isFinite(numeric) ? numeric.toFixed(2) : "0.00";
       }
 
       // Aviation-specific assumption: obstacle limit follows a straight-line
@@ -221,7 +222,7 @@
           <circle cx="${gx}" cy="${gy}" r="5" fill="#1f7a31" />
 
           ${text(gx + 8, gy - 8, "#1f7a31", "Helipad reference")}
-          ${text(surfaceLabelX, pathEndY - 8, "#1d5fd0", `Surface @ ${format(angleDeg)}°`) }
+          ${text(surfaceLabelX, pathEndY - 8, "#1d5fd0", `Surface @ ${format(angleDeg)}°`)}
           ${text(obstacleX + 10, obstacleTopY - 8, "#b32020", `Obstacle ${format(obstacleHeight)} m`) }
           ${text(obstacleX + 10, obstacleLimitY - 8, "#1d5fd0", `Max ${format(maxHeight)} m`) }
           ${text(padding.left, H - 18, "#32435f", `Distance scale: 0 to ${format(xMax)} m`) }
