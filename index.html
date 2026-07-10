@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Helipad Clear-Angle Tool</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: Arial, Helvetica, sans-serif;
+      }
+
+      body {
+        margin: 0;
+        background: #f5f7fb;
+        color: #102038;
+      }
+
+      .container {
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 1rem;
+      }
+
+      h1 {
+        margin: 0 0 0.4rem;
+        font-size: 1.4rem;
+      }
+
+      .note {
+        margin: 0 0 1rem;
+        font-size: 0.92rem;
+        color: #32435f;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        gap: 1rem;
+      }
+
+      .panel,
+      .viz {
+        background: #fff;
+        border: 1px solid #d4deec;
+        border-radius: 10px;
+        padding: 1rem;
+        box-shadow: 0 1px 1px rgba(16, 32, 56, 0.04);
+      }
+
+      .field {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 0.5rem;
+        align-items: center;
+        margin-bottom: 0.7rem;
+      }
+
+      .field label {
+        font-size: 0.92rem;
+      }
+
+      .field input {
+        width: 110px;
+        padding: 0.35rem 0.45rem;
+      }
+
+      .results {
+        margin-top: 1rem;
+        padding-top: 0.8rem;
+        border-top: 1px solid #e4ebf5;
+        font-size: 0.95rem;
+      }
+
+      .status {
+        margin-top: 0.5rem;
+        font-weight: 700;
+      }
+
+      .status.clear {
+        color: #1f7a31;
+      }
+
+      .status.penetrates {
+        color: #b32020;
+      }
+
+      svg {
+        width: 100%;
+        height: 380px;
+        display: block;
+      }
+
+      @media (max-width: 860px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="container">
+      <h1>Helipad Clear-Angle Approach/Departure Visualizer</h1>
+      <p class="note">
+        Simplified geometric planning aid only -- not an operationally certified aviation planning tool.
+      </p>
+
+      <section class="layout">
+        <div class="panel">
+          <div class="field">
+            <label for="pathDistance">Approach/departure distance (m)</label>
+            <input id="pathDistance" type="number" min="10" step="10" value="300" />
+          </div>
+          <div class="field">
+            <label for="angleDeg">Clear angle / slope (degrees)</label>
+            <input id="angleDeg" type="number" min="1" max="45" step="0.1" value="8" />
+          </div>
+          <div class="field">
+            <label for="obstacleDistance">Obstacle distance from helipad (m)</label>
+            <input id="obstacleDistance" type="number" min="0" step="1" value="120" />
+          </div>
+          <div class="field">
+            <label for="obstacleHeight">Obstacle actual height (m)</label>
+            <input id="obstacleHeight" type="number" min="0" step="0.1" value="12" />
+          </div>
+
+          <div class="results">
+            <div>Maximum permitted obstacle height: <strong id="maxHeight">-</strong> m</div>
+            <div>Obstacle margin: <strong id="margin">-</strong> m</div>
+            <div id="status" class="status">-</div>
+          </div>
+        </div>
+
+        <div class="viz">
+          <svg id="diagram" viewBox="0 0 760 380" aria-label="Approach departure profile diagram"></svg>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const fields = {
+        pathDistance: document.getElementById("pathDistance"),
+        angleDeg: document.getElementById("angleDeg"),
+        obstacleDistance: document.getElementById("obstacleDistance"),
+        obstacleHeight: document.getElementById("obstacleHeight"),
+      };
+
+      const maxHeightEl = document.getElementById("maxHeight");
+      const marginEl = document.getElementById("margin");
+      const statusEl = document.getElementById("status");
+      const svg = document.getElementById("diagram");
+
+      function clampNonNegative(value) {
+        return Number.isFinite(value) ? Math.max(0, value) : 0;
+      }
+
+      function format(value) {
+        const numeric = Number(value);
+        return Number.isFinite(numeric) ? numeric.toFixed(2) : "0.00";
+      }
+
+      // Aviation-specific assumption: obstacle limit follows a straight-line
+      // surface rising from the helipad at the configured clear-angle.
+      function calculateMaxHeight(distance, angleDeg) {
+        return distance * Math.tan((angleDeg * Math.PI) / 180);
+      }
+
+      function line(x1, y1, x2, y2, stroke, width = 2, dash = "") {
+        return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${stroke}" stroke-width="${width}" ${dash ? `stroke-dasharray="${dash}"` : ""} />`;
+      }
+
+      function text(x, y, fill, content) {
+        return `<text x="${x}" y="${y}" fill="${fill}" font-size="13">${content}</text>`;
+      }
+
+      function update() {
+        const pathDistance = clampNonNegative(parseFloat(fields.pathDistance.value));
+        const angleDeg = clampNonNegative(parseFloat(fields.angleDeg.value));
+        const obstacleDistance = clampNonNegative(parseFloat(fields.obstacleDistance.value));
+        const obstacleHeight = clampNonNegative(parseFloat(fields.obstacleHeight.value));
+
+        const maxHeight = calculateMaxHeight(obstacleDistance, angleDeg);
+        const margin = maxHeight - obstacleHeight;
+        const clears = margin >= 0;
+
+        maxHeightEl.textContent = format(maxHeight);
+        marginEl.textContent = format(margin);
+        statusEl.textContent = clears ? "Obstacle clears approach/departure surface" : "Obstacle penetrates approach/departure surface";
+        statusEl.className = `status ${clears ? "clear" : "penetrates"}`;
+
+        const W = 760;
+        const H = 380;
+        const padding = { left: 70, right: 30, top: 20, bottom: 50 };
+        const chartW = W - padding.left - padding.right;
+        const chartH = H - padding.top - padding.bottom;
+        const xMax = Math.max(pathDistance, obstacleDistance, 1);
+        const pathHeightAtEnd = calculateMaxHeight(pathDistance, angleDeg);
+        const yMax = Math.max(pathHeightAtEnd, obstacleHeight, maxHeight, 1) * 1.15;
+
+        const x = (d) => padding.left + (d / xMax) * chartW;
+        const y = (h) => padding.top + chartH - (h / yMax) * chartH;
+
+        const gx = x(0);
+        const gy = y(0);
+        const pathEndX = x(pathDistance);
+        const pathEndY = y(pathHeightAtEnd);
+        const obstacleX = x(obstacleDistance);
+        const obstacleTopY = y(obstacleHeight);
+        const obstacleLimitY = y(maxHeight);
+        const surfaceLabelOffset = 190;
+        const surfaceLabelX = Math.max(padding.left + 8, pathEndX - surfaceLabelOffset);
+
+        svg.innerHTML = `
+          <rect x="0" y="0" width="${W}" height="${H}" fill="#ffffff" />
+          ${line(padding.left, gy, W - padding.right, gy, "#59677d", 2)}
+          ${line(gx, padding.top, gx, H - padding.bottom, "#59677d", 2)}
+
+          ${line(gx, gy, pathEndX, pathEndY, "#1d5fd0", 3)}
+          ${line(obstacleX, gy, obstacleX, obstacleTopY, "#b32020", 8)}
+          ${line(obstacleX - 14, obstacleLimitY, obstacleX + 14, obstacleLimitY, "#1d5fd0", 2, "5 4")}
+
+          <circle cx="${gx}" cy="${gy}" r="5" fill="#1f7a31" />
+
+          ${text(gx + 8, gy - 8, "#1f7a31", "Helipad reference")}
+          ${text(surfaceLabelX, pathEndY - 8, "#1d5fd0", `Surface @ ${format(angleDeg)}°`)}
+          ${text(obstacleX + 10, obstacleTopY - 8, "#b32020", `Obstacle ${format(obstacleHeight)} m`) }
+          ${text(obstacleX + 10, obstacleLimitY - 8, "#1d5fd0", `Max ${format(maxHeight)} m`) }
+          ${text(padding.left, H - 18, "#32435f", `Distance scale: 0 to ${format(xMax)} m`) }
+          ${text(W - 280, H - 18, "#32435f", `Surface height scale: 0 to ${format(yMax)} m`) }
+        `;
+      }
+
+      Object.values(fields).forEach((input) => input.addEventListener("input", update));
+      update();
+    </script>
+  </body>
+</html>
