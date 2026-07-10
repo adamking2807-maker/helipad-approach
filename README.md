@@ -4,7 +4,7 @@ A simple static HTML/CSS/JavaScript tool for visualizing a helipad-centered appr
 
 ## Run locally
 
-1. Open `/home/runner/work/helipad-approach/helipad-approach/index.html` in a browser.
+1. Open `index.html` in a browser.
 2. Adjust the inputs:
    - approach/departure horizontal distance
    - clear angle / slope angle

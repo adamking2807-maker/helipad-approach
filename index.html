@@ -206,6 +206,8 @@
         const obstacleX = x(obstacleDistance);
         const obstacleTopY = y(obstacleHeight);
         const obstacleLimitY = y(maxHeight);
+        const surfaceLabelOffset = 190;
+        const surfaceLabelX = Math.max(padding.left + 8, pathEndX - surfaceLabelOffset);
 
         svg.innerHTML = `
           <rect x="0" y="0" width="${W}" height="${H}" fill="#ffffff" />
@@ -219,7 +221,7 @@
           <circle cx="${gx}" cy="${gy}" r="5" fill="#1f7a31" />
 
           ${text(gx + 8, gy - 8, "#1f7a31", "Helipad reference")}
-          ${text(pathEndX - 190, pathEndY - 8, "#1d5fd0", `Surface @ ${format(angleDeg)}°`) }
+          ${text(surfaceLabelX, pathEndY - 8, "#1d5fd0", `Surface @ ${format(angleDeg)}°`) }
           ${text(obstacleX + 10, obstacleTopY - 8, "#b32020", `Obstacle ${format(obstacleHeight)} m`) }
           ${text(obstacleX + 10, obstacleLimitY - 8, "#1d5fd0", `Max ${format(maxHeight)} m`) }
           ${text(padding.left, H - 18, "#32435f", `Distance scale: 0 to ${format(xMax)} m`) }
